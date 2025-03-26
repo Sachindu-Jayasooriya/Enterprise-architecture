@@ -1,0 +1,59 @@
+<?php
+session_start();
+if (!isset($_SESSION['username'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$conn = new mysqli('localhost', 'root', '', 'hr_manager');
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$employee_id = $_POST['employee_id'];
+$query = "SELECT * FROM attendance WHERE employee_id = '$employee_id'";
+$result = $conn->query($query);
+
+$total_ot_hours = 0;
+$total_leave_days = 0;
+$total_half_days = 0;
+$total_workdays = 0;
+
+while ($row = $result->fetch_assoc()) {
+    $in_time = strtotime($row['in_time']);
+    $out_time = strtotime($row['out_time']);
+    $work_hours = ($out_time - $in_time) / 3600;
+
+    if ($work_hours > 8) {
+        $total_ot_hours += $work_hours - 8;
+    } elseif ($work_hours < 4) {
+        $total_leave_days++;
+    } else {
+        $total_half_days++;
+    }
+    $total_workdays++;
+}
+
+$basic_salary = $total_workdays * 8000;
+$overtime_payment = $total_ot_hours * 2000;
+$total_payment = $basic_salary + $overtime_payment;
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Employee Details</title>
+</head>
+<body>
+    <h2>Employee ID: <?php echo $employee_id; ?></h2>
+    <p>Total Workdays: <?php echo $total_workdays; ?></p>
+    <p>Overtime Hours: <?php echo $total_ot_hours; ?></p>
+    <p>Leave Days: <?php echo $total_leave_days; ?></p>
+    <p>Half Days: <?php echo $total_half_days; ?></p>
+    <p>Basic Salary: LKR <?php echo $basic_salary; ?></p>
+    <p>Overtime Payment: LKR <?php echo $overtime_payment; ?></p>
+    <p>Total Payment: LKR <?php echo $total_payment; ?></p>
+
+    <a href="dashboard.php">Back to Dashboard</a>
+</body>
+</html>
